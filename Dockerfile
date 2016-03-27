@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y \
         ipython-notebook \
         python-pandas \
         python-sympy \
-        python-nose
+        python-nose \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*

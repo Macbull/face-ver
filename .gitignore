@@ -1,0 +1,5 @@
+*.pyc
+*.local
+*.pickle
+face_ver/att_faces
+face_ver/tmp

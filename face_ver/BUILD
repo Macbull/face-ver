@@ -1,7 +1,7 @@
 # Description: Tensorflow Serving examples.
 
 package(
-    default_visibility = ["//tensorflow_serving:internal"],
+    default_visibility = ["@tensorflow_serving:internal"],
     features = [
         "-parse_headers",
         "no_layering_check",
@@ -39,9 +39,9 @@ py_binary(
         "mnist_export.py",
     ],
     deps = [
-        "@tf//tensorflow:tensorflow_py",
+        "@tensorflow_serving/tf/tensorflow:tensorflow_py",
         ":mnist_input_data",
-        "//tensorflow_serving/session_bundle:exporter",
+        "@tensorflow_serving/session_bundle:exporter",
     ],
 )
 
@@ -51,10 +51,10 @@ py_binary(
         "cifar10_train.py",
     ],
     deps = [
-        "@tf//tensorflow:tensorflow_py",
+        "@tensorflow_serving//tf/tensorflow:tensorflow_py",
         ":input_data",
         ":cifar10",
-        "//tensorflow_serving/session_bundle:exporter",
+        "@tensorflow_serving/session_bundle:exporter",
     ],
 )
 

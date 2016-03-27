@@ -36,7 +36,7 @@ RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
 
 RUN pip install enum34 futures six && \
     pip install --pre protobuf>=3.0.0a3 && \
-    pip install -i https://testpypi.python.org/simple --pre grpcio
+    pip install -i https://testpypi.python.org/simple --pre grpcio \
     pip install -U scikit-learn
 # Set up Bazel.
 

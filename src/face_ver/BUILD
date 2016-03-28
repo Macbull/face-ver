@@ -1,7 +1,7 @@
 # Description: Tensorflow Serving examples.
 
 package(
-    default_visibility = ["@face_ver:internal"],
+    default_visibility = ["//visibility:public"],
     features = [
         "-parse_headers",
         "no_layering_check",

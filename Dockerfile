@@ -1,6 +1,6 @@
 FROM ubuntu:14.04
 
-MAINTAINER Jeremiah Harmsen <jeremiah@google.com>
+MAINTAINER Vishwajeet Narwal <vnarwal95@gmail.com>
 
 RUN apt-get update && apt-get install -y \
         build-essential \

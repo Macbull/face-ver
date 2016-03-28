@@ -12,6 +12,8 @@ licenses(["notice"])  # Apache 2.0
 
 exports_files(["LICENSE"])
 
+load("@serving//tensorflow_serving:serving.bzl", "serving_proto_library")
+
 filegroup(
     name = "all_files",
     srcs = glob(
@@ -57,5 +59,3 @@ py_binary(
         "@serving//tensorflow_serving/session_bundle:exporter",
     ],
 )
-
-

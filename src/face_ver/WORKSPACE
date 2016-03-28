@@ -8,8 +8,10 @@ local_repository(
   path = __workspace_dir__ + "/../serving",
 )
 
-load("@serving//tensorflow/tensorflow:workspace.bzl", 'tf_workspace')
-tf_workspace("../serving/tensorflow/")
+load('@serving//tensorflow/tensorflow:workspace.bzl', 'tf_workspace')
+tf_workspace("../serving/tensorflow/", "@tf")
+
+# ===== gRPC dependencies =====
 
 bind(
     name = "libssl",
@@ -21,11 +23,6 @@ git_repository(
     commit = "436432d849b83ab90f18773e4ae1c7a8f148f48d",
     init_submodules = True,
     remote = "https://github.com/mdsteele/boringssl-bazel.git",
-)
-
-bind(
-    name = "protobuf_clib",
-    actual = "@serving//tensorflow/google/protobuf:protobuf",
 )
 
 bind(

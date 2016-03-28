@@ -8,7 +8,7 @@ local_repository(
   path = __workspace_dir__ + "/../serving",
 )
 
-load('@tf//tensoflow:workspace.bzl','tf_workspace')
+load('@tf//tensorflow/tensoflow:workspace.bzl','tf_workspace')
 
 tf_workspace("tensorflow/")
 

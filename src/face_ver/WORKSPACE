@@ -25,7 +25,7 @@ git_repository(
 
 bind(
     name = "protobuf_clib",
-    actual = "@tf//google/protobuf:protobuf",
+    actual = "@serving//tensorflow/google/protobuf:protobuf",
 )
 
 bind(

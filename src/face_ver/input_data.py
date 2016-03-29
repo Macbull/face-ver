@@ -1,5 +1,4 @@
 from six.moves import cPickle as pickle
-train_samples = 2415
 class Dataset(object):
 	def __init__(self, train_dataset, test_dataset, valid_dataset, train_labels, test_labels, valid_labels):
 		self._train_dataset = train_dataset
@@ -43,8 +42,8 @@ class Dataset(object):
 		return self._valid_samples
     
 		    
-def read():	
-	pickle_file = 'att_faces/att_faces_paired.pickle'
+def read(pickle_file = 'att_faces/att_faces.pickle'):	
+	
 	with open(pickle_file,'rb') as f:
 		save = pickle.load(f)
 		train_dataset = save['train_dataset']

@@ -14,28 +14,23 @@ import cifar10
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', 'tmp/cifar10_train',
-                           """Directory where to write event logs """
-                           """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 1000000,
-                            """Number of batches to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 
 
 def train():
   """Train CIFAR-10 for a number of steps."""
-  dataset = input_data.read()
+  dataset = input_data.read(FLAGS.input_dir)
   image, image_p, label = dataset.train_dataset
   image_size  = dataset.image_size
-  batch_size = 128
+  training_samples = dataset.train_samples
   with tf.Graph().as_default():
     global_step = tf.Variable(0, trainable=False)
 
     # Get images and labels for CIFAR-10.
-    train_images = tf.placeholder(tf.float32, shape=(2, batch_size, image_size[0], image_size[1], image_size[2]))
+    train_images = tf.placeholder(tf.float32, shape=(2, FLAGS.batch_size, image_size[0], image_size[1], image_size[2]))
     eval_images = tf.placeholder(tf.float32, shape=(2, 1, image_size[0], image_size[1], image_size[2]))
-    labels = tf.placeholder(tf.float32, shape=(batch_size))
+    labels = tf.placeholder(tf.float32, shape=(FLAGS.batch_size))
     # tf.image_summary('images', train_images)
 
     images, images_p = tf.split(0, 2, train_images)
@@ -57,7 +52,7 @@ def train():
 
     # Build a Graph that trains the model with one batch of examples and
     # updates the model parameters.
-    train_op = cifar10.train(loss, global_step)
+    train_op = cifar10.train(loss, global_step, FLAGS.max_steps, training_samples)
 
     accuracy = cifar10.accuracy(logits, logits2, labels)
     eval_prediction = cifar10.predict(eval_logits, eval_logits2)
@@ -83,9 +78,9 @@ def train():
 
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
-      offset = (step * batch_size) % (dataset.train_samples - batch_size)
+      offset = (step * FLAGS.batch_size) % (dataset.train_samples - FLAGS.batch_size)
       # _, loss_value= sess.run([train_op, loss], feed_dict={images: image[offset:(offset + batch_size)], images2: image_p[offset:(offset + batch_size)], labels: 1.0*label[offset:(offset + batch_size)]})
-      _, loss_value= sess.run([train_op, loss], feed_dict={train_images: [image[offset:(offset + batch_size)],image_p[offset:(offset + batch_size)]], labels: 1.0*label[offset:(offset + batch_size)]})
+      _, loss_value= sess.run([train_op, loss], feed_dict={train_images: [image[offset:(offset + FLAGS.batch_size)],image_p[offset:(offset + FLAGS.batch_size)]], labels: 1.0*label[offset:(offset + FLAGS.batch_size)]})
 
       # _, loss_value, acc = sess.run([train_op, loss, accuracy], feed_dict={images: image[offset:(offset + batch_size)], images2: image_p[offset:(offset + batch_size)], labels: 1.0*label[offset:(offset + batch_size)]})
       
@@ -106,7 +101,7 @@ def train():
                              examples_per_sec, sec_per_batch))
 
       if step % 100 == 0:
-        summary_str = sess.run(summary_op, feed_dict={train_images: [image[offset:(offset + batch_size)],image_p[offset:(offset + batch_size)]], labels: 1.0*label[offset:(offset + batch_size)]} )
+        summary_str = sess.run(summary_op, feed_dict={train_images: [image[offset:(offset + FLAGS.batch_size)],image_p[offset:(offset + FLAGS.batch_size)]], labels: 1.0*label[offset:(offset + FLAGS.batch_size)]} )
         summary_writer.add_summary(summary_str, step)
 
       # Save the model checkpoint periodically.
@@ -116,15 +111,32 @@ def train():
         signature = exporter.classification_signature(input_tensor=eval_images, scores_tensor=eval_prediction)
         model_exporter.init(sess.graph.as_graph_def(),
                       default_graph_signature=signature)
-        export_path = sys.argv[-1]
-        model_exporter.export(export_path, 1, sess)
+        model_exporter.export(FLAGS.export_path, 1, sess)
 
         saver.save(sess, checkpoint_path, global_step=step)
         print('Done exporting!')
 
 def main(argv=None): 
  # pylint: disable=unused-argument
-  train()
+  if(len(argv)==6):
+    tf.app.flags.DEFINE_string('input_dir', str(argv[1]),
+                           """Path to the data directory.""")
+    tf.app.flags.DEFINE_integer('batch_size', int(sys.argv[2]),
+                            """Number of images to process in a batch.""")
+    tf.app.flags.DEFINE_integer('max_steps', int(sys.argv[3]),
+                            """Number of batches to run.""")
+    tf.app.flags.DEFINE_string('train_dir', str(sys.argv[4]),
+                           """Directory where to write event logs """
+                           """and checkpoint.""")
+    tf.app.flags.DEFINE_string('export_path', str(sys.argv[5]),
+                       """Directory where to write event logs """
+                       """and checkpoint.""")
+    train()
+  else:
+    print("enter propoer arguments")
+
+    
+
 
 
 if __name__ == '__main__':

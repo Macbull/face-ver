@@ -1,22 +1,24 @@
 import os
+import sys
 from scipy import ndimage
 from six.moves import cPickle as pickle
 import numpy as np
 import math
 
-def nCr(n,r):
-    f = math.factorial
-    return f(n) / f(r) / f(n-r)
+if len(sys.argv) == 1:
+	root = 'att_faces'
+else:
+	root = str(sys.argv[1])
 
 image_size = [112,92]
 pixel_depth = 255.0
 num_channels = 1
-root = 'att_faces'
 data_folders = [
 	os.path.join(root, d) for d in sorted(os.listdir(root))
 	if os.path.isdir(os.path.join(root, d))]
+num_classes = len(data_folders)
 
-def load_letter(folder, min_num_images):
+def load_person(folder, min_num_images):
 	"""Load the data for a single letter label."""
 	image_files = os.listdir(folder)
 	dataset = np.ndarray(shape = (len(image_files), image_size[0], image_size[1]), dtype=np.float32)
@@ -43,7 +45,7 @@ def load_letter(folder, min_num_images):
 	print('Standard deviation:', np.std(dataset))
 	return dataset
 
-def maybe_pickle(data_folders, min_num_images_per_class = 10, force=False):
+def maybe_pickle(data_folders, min_num_images_per_class, force=False):
 	dataset_names = []
 	for folder in data_folders:
 		set_filename = folder + '.pickle'
@@ -53,7 +55,7 @@ def maybe_pickle(data_folders, min_num_images_per_class = 10, force=False):
 			print('%s already present - Skipping pickling.' % set_filename)
 		else:
 			print('Pickling %s.' % set_filename)
-			dataset = load_letter(folder, min_num_images_per_class)
+			dataset = load_person(folder, min_num_images_per_class)
 			try:
 				with open(set_filename, 'wb') as f:
 					pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
@@ -62,8 +64,8 @@ def maybe_pickle(data_folders, min_num_images_per_class = 10, force=False):
 				
 	return dataset_names
 
-train_folders = maybe_pickle(data_folders[0:30])
-test_folders = maybe_pickle(data_folders[30:40])
+train_folders = maybe_pickle(data_folders[0:30], 10)
+test_folders = maybe_pickle(data_folders[30:40], 10)
 
 
 def make_arrays(nb_rows, img_size):
@@ -108,13 +110,14 @@ def merge_datasets(pickle_files, train_size, num_classes, valid_size=0):
 	return valid_dataset, valid_labels, train_dataset, train_labels
 	
 train_size = 10*7
-# train_size = 200000
 valid_size = 10*3
 test_size = 10*10
 
 valid_dataset, valid_labels, train_dataset, train_labels = merge_datasets(train_folders, train_size, 30, valid_size)
 _, _, test_dataset, test_labels = merge_datasets(test_folders, test_size, 10)
+
 print('\n Merging \n')
+
 print ('Training: ', train_dataset.shape, train_labels.shape)
 print ('Validation: ', valid_dataset.shape, valid_labels.shape)
 print('Testing: ', test_dataset.shape, test_labels.shape)
@@ -129,6 +132,21 @@ train_dataset, train_labels = randomize(train_dataset, train_labels)
 test_dataset, test_labels = randomize(test_dataset, test_labels)
 valid_dataset, valid_labels = randomize(valid_dataset, valid_labels)
 
+def reformat(dataset, labels):
+	# data as a flat matrix
+	dataset = dataset.reshape((-1, image_size[0], image_size[1], num_channels)).astype(np.float32)
+	# Map 0 to [1.0, 0.0, 0.0 ...], 1 to [0.0, 1.0, 0.0 ...]
+	return dataset, labels
+
+train_dataset, train_labels = reformat(train_dataset, train_labels)
+valid_dataset, valid_labels = reformat(valid_dataset, valid_labels)
+test_dataset, test_labels = reformat(test_dataset, test_labels)
+
+print('\nDataset reformatted\n')
+
+print('Training set', train_dataset.shape, train_labels.shape)
+print('Validation set', valid_dataset.shape, valid_labels.shape)
+print('Test dataset', test_dataset.shape, test_labels.shape)
 
 def save_dataset(pickle_file, train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels):
 	try:
@@ -150,36 +168,6 @@ def save_dataset(pickle_file, train_dataset, train_labels, valid_dataset, valid_
 
 dataset_file = save_dataset('att_faces.pickle', train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels)
 
-def open_file(pickle_file):
-	with open(pickle_file,'rb') as f:
-		save = pickle.load(f)
-		train_dataset = save['train_dataset']
-		train_labels = save['train_labels']
-		valid_dataset = save['valid_dataset']
-		valid_labels = save['valid_labels']
-		test_dataset = save['test_dataset']
-		test_labels = save['test_labels']
-		del save
-		print('\n File opened\n')
-		print('Training set', train_dataset.shape, train_labels.shape)
-		print('Validation set', valid_dataset.shape, valid_labels.shape)
-		print('Test dataset', test_dataset.shape, test_labels.shape)
-
-open_file(dataset_file)
-
-def reformat(dataset, labels):
-	# data as a flat matrix
-	dataset = dataset.reshape((-1, image_size[0], image_size[1], num_channels)).astype(np.float32)
-	# Map 0 to [1.0, 0.0, 0.0 ...], 1 to [0.0, 1.0, 0.0 ...]
-	return dataset, labels
-
-train_dataset, train_labels = reformat(train_dataset, train_labels)
-valid_dataset, valid_labels = reformat(valid_dataset, valid_labels)
-test_dataset, test_labels = reformat(test_dataset, test_labels)
-print('\nDataset reformatted\n')
-print('Training set', train_dataset.shape, train_labels.shape)
-print('Validation set', valid_dataset.shape, valid_labels.shape)
-print('Test dataset', test_dataset.shape, test_labels.shape)
 
 def pair(dataset, labels):
 	pairs = np.ndarray(shape = (2, nCr(dataset.shape[0],2), dataset.shape[1], dataset.shape[2], dataset.shape[3]), dtype=np.float32)
@@ -194,11 +182,11 @@ def pair(dataset, labels):
 			count +=1
 	return pairs, pair_labels
 
-train_dataset, train_labels = pair(train_dataset, train_labels)
-valid_dataset, valid_labels = pair(valid_dataset, valid_labels)
-test_dataset, test_labels = pair(test_dataset, test_labels)
-print('\npaired\n')
-print('Training set', train_dataset.shape, train_labels.shape)
-print('Validation set', valid_dataset.shape, valid_labels.shape)
-print('Test dataset', test_dataset.shape, test_labels.shape)
-paired_dataset = save_dataset('att_faces_paired.pickle', train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels)
+# train_dataset, train_labels = pair(train_dataset, train_labels)
+# valid_dataset, valid_labels = pair(valid_dataset, valid_labels)
+# test_dataset, test_labels = pair(test_dataset, test_labels)
+# print('\npaired\n')
+# print('Training set', train_dataset.shape, train_labels.shape)
+# print('Validation set', valid_dataset.shape, valid_labels.shape)
+# print('Test dataset', test_dataset.shape, test_labels.shape)
+# paired_dataset = save_dataset('att_faces_paired.pickle', train_dataset, train_labels, valid_dataset, valid_labels, test_dataset, test_labels)

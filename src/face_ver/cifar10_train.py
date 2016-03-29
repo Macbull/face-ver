@@ -11,6 +11,8 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from tensorflow_serving.session_bundle import exporter
 import cifar10
+import math
+
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -18,24 +20,38 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 
 
+def nCr(n,r):
+    f = math.factorial
+    return f(n) / f(r) / f(n-r)
+
 def train():
   """Train CIFAR-10 for a number of steps."""
+
+  #Load Dataset and related attributes
   dataset = input_data.read(FLAGS.input_dir)
-  image, image_p, label = dataset.train_dataset
+  image, label = dataset.train_dataset
   image_size  = dataset.image_size
-  training_samples = dataset.train_samples
+  paired_training_samples = nCr(dataset.train_samples,2) # Model will be trained on paired data
+
+
+
   with tf.Graph().as_default():
     global_step = tf.Variable(0, trainable=False)
 
     # Get images and labels for CIFAR-10.
     train_images = tf.placeholder(tf.float32, shape=(2, FLAGS.batch_size, image_size[0], image_size[1], image_size[2]))
-    eval_images = tf.placeholder(tf.float32, shape=(2, 1, image_size[0], image_size[1], image_size[2]))
     labels = tf.placeholder(tf.float32, shape=(FLAGS.batch_size))
-    # tf.image_summary('images', train_images)
+
+    eval_images = tf.placeholder(tf.float32, shape=(2, 1, image_size[0], image_size[1], image_size[2]))
+
 
     images, images_p = tf.split(0, 2, train_images)
-    eval_image, eval_image_p = tf.split(0, 2, train_images)
-    # tf.image_summary('images2', images)
+    tf.image_summary('images', train_images)
+    tf.image_summary('images_p', train_images)
+
+    # For inference.cc
+    eval_image, eval_image_p = tf.split(0, 2, eval_images)
+
     # Build a Graph that computes the logits predictions from the
     # inference model.
     with tf.variable_scope('inference') as scope:
@@ -52,10 +68,12 @@ def train():
 
     # Build a Graph that trains the model with one batch of examples and
     # updates the model parameters.
-    train_op = cifar10.train(loss, global_step, FLAGS.max_steps, training_samples)
-
+    train_op = cifar10.train(loss, global_step, FLAGS.max_steps, paired_training_samples)
     accuracy = cifar10.accuracy(logits, logits2, labels)
+
     eval_prediction = cifar10.predict(eval_logits, eval_logits2)
+    
+
     # Create a saver.
     saver = tf.train.Saver(tf.all_variables(), sharded=True)
 
@@ -75,19 +93,36 @@ def train():
 
     summary_writer = tf.train.SummaryWriter(FLAGS.train_dir,
                                             graph_def=sess.graph_def)
-
+    i = 0
+    j = 1
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
-      offset = (step * FLAGS.batch_size) % (dataset.train_samples - FLAGS.batch_size)
-      # _, loss_value= sess.run([train_op, loss], feed_dict={images: image[offset:(offset + batch_size)], images2: image_p[offset:(offset + batch_size)], labels: 1.0*label[offset:(offset + batch_size)]})
-      _, loss_value= sess.run([train_op, loss], feed_dict={train_images: [image[offset:(offset + FLAGS.batch_size)],image_p[offset:(offset + FLAGS.batch_size)]], labels: 1.0*label[offset:(offset + FLAGS.batch_size)]})
+      image_batch = [[],[]]
+      label_batch = []
+      for k in range(FLAGS.batch_size):
+        image_batch[0].append(image[i])
+        image_batch[1].append(image[j])
 
-      # _, loss_value, acc = sess.run([train_op, loss, accuracy], feed_dict={images: image[offset:(offset + batch_size)], images2: image_p[offset:(offset + batch_size)], labels: 1.0*label[offset:(offset + batch_size)]})
+        if label[i]==label[j]:
+          label_batch.append(0.0)
+        else:
+          label_batch.append(1.0)
+        
+        j = j + 1
+        if j == dataset.train_samples:
+          i = i + 1
+          j = i + 1
+        if i == dataset.train_samples:
+          i = 0
+          j = 1
+      feed_dict = {train_images: image_batch, labels: label_batch}
       
+
+      _, loss_value= sess.run([train_op, loss], feed_dict=feed_dict)
+
       duration = time.time() - start_time
 
       print(loss_value)
-      # print(acc)
       assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
       if step % 10 == 0:
@@ -101,7 +136,7 @@ def train():
                              examples_per_sec, sec_per_batch))
 
       if step % 100 == 0:
-        summary_str = sess.run(summary_op, feed_dict={train_images: [image[offset:(offset + FLAGS.batch_size)],image_p[offset:(offset + FLAGS.batch_size)]], labels: 1.0*label[offset:(offset + FLAGS.batch_size)]} )
+        summary_str = sess.run(summary_op, feed_dict=feed_dict)
         summary_writer.add_summary(summary_str, step)
 
       # Save the model checkpoint periodically.

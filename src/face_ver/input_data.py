@@ -8,22 +8,22 @@ class Dataset(object):
 		self._valid_dataset = valid_dataset
 		self._valid_labels = valid_labels
 
-		self._image_size = (train_dataset.shape[2], train_dataset.shape[3], train_dataset.shape[4])
-		self._train_samples = train_dataset.shape[1]
+		self._image_size = (train_dataset.shape[1], train_dataset.shape[2], train_dataset.shape[3])
+		self._train_samples = train_dataset.shape[0]
 		self._test_samples = test_dataset.shape[1]
 		self._valid_samples = valid_dataset.shape[1]
 		train_samples = self._train_samples
 	@property
 	def train_dataset(self):
-	    return self._train_dataset[0], self._train_dataset[1], self._train_labels
+	    return self._train_dataset, self._train_labels
 	
 	@property
 	def test_dataset(self):
-	    return self._test_dataset[0], self._test_dataset[1], self._test_labels
+	    return self._test_dataset, self._test_labels
 
 	@property
 	def valid_dataset(self):
-		return self._valid_dataset[0], self._valid_dataset[1], self._valid_labels
+		return self._valid_dataset, self._valid_labels
 
 	@property
 	def image_size(self):

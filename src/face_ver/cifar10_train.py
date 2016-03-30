@@ -72,7 +72,7 @@ def train():
     train_op = cifar10.train(loss, global_step, FLAGS.max_steps, paired_training_samples)
     accuracy = cifar10.accuracy(logits, logits2, labels)
 
-    eval_prediction = cifar10.predict(eval_logits, eval_logits2)
+    eval_prediction = cifar10.energy(eval_logits, eval_logits2)
     
 
     # Create a saver.

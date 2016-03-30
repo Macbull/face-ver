@@ -196,8 +196,12 @@ def loss(features1, features2, labels):
   # decay terms (L2 loss).
   return tf.add_n(tf.get_collection('losses'), name='total_loss')
 
-def predict(features1, features2):
+def energy(features1, features2):
   energy_square = (tf.reduce_sum(tf.pow(tf.sub(features1, features2), 2),1))
+  return energy_square
+
+def predict(features1, features2):
+  energy_square = energy(features1,features2)
   prediction = tf.mul((tf.add(tf.sign(tf.sub(energy_square,0.5)),1)),0.5)
   return prediction
   

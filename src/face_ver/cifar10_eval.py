@@ -37,7 +37,6 @@ from __future__ import print_function
 from datetime import datetime
 import math
 import time
-import sys
 
 import numpy as np
 import tensorflow as tf
@@ -48,6 +47,17 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
                             """How often to run the eval.""")
+tf.app.flags.DEFINE_string('input_dir', 'att_faces',
+                       """Path to the data directory.""")
+tf.app.flags.DEFINE_integer('batch_size', 128,
+                        """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_boolean('run_once', True,
+                     """Whether to run eval only once.""")
+tf.app.flags.DEFINE_string('checkpoint_dir', 'tmp/train',
+                       """Directory where to read model checkpoints.""")
+tf.app.flags.DEFINE_string('eval_dir', 'tmp/eval'),
+                       """Directory where to write event logs.""")
+
 
 def eval_once(saver, summary_writer, top_k_op, summary_op, dataset, eval_images, labels):
   """Run Eval once.
@@ -168,22 +178,8 @@ def evaluate():
 
 
 def main(argv=None):  # pylint: disable=unused-argument
- if(len(argv)==6):
-    tf.app.flags.DEFINE_string('input_dir', str(sys.argv[1]),
-                           """Path to the data directory.""")
-    tf.app.flags.DEFINE_integer('batch_size', int(sys.argv[2]),
-                            """Number of images to process in a batch.""")
-    tf.app.flags.DEFINE_boolean('run_once', 1==int(sys.argv[3]),
-                         """Whether to run eval only once.""")
-    tf.app.flags.DEFINE_string('checkpoint_dir', str(sys.argv[4]),
-                           """Directory where to read model checkpoints.""")
-    tf.app.flags.DEFINE_string('eval_dir', str(sys.argv[5]),
-                           """Directory where to write event logs.""")
-
     evaluate()
 
-  else:
-    print("enter propoer arguments")
 
 
 if __name__ == '__main__':

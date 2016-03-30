@@ -12,7 +12,6 @@ import tensorflow as tf
 from tensorflow_serving.session_bundle import exporter
 import cifar10
 import math
-import sys
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -20,6 +19,17 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 
+tf.app.flags.DEFINE_string('input_dir', 'att_faces',
+                           """Path to the data directory.""")
+tf.app.flags.DEFINE_integer('batch_size', 128,
+                        """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('max_steps', 1000000,
+                        """Number of batches to run.""")
+tf.app.flags.DEFINE_string('train_dir', 'tmp/train,
+                       """Directory where to write event logs """
+                       """and checkpoint.""")
+tf.app.flags.DEFINE_string('export_path', 'tmp/serving',
+                   """Directory where to export proto of model for serving""")
 
 def nCr(n,r):
     f = math.factorial
@@ -154,22 +164,8 @@ def train():
 
 def main(argv=None): 
  # pylint: disable=unused-argument
-  if(len(argv)==6):
-    tf.app.flags.DEFINE_string('input_dir', str(sys.argv[1]),
-                           """Path to the data directory.""")
-    tf.app.flags.DEFINE_integer('batch_size', int(sys.argv[2]),
-                            """Number of images to process in a batch.""")
-    tf.app.flags.DEFINE_integer('max_steps', int(sys.argv[3]),
-                            """Number of batches to run.""")
-    tf.app.flags.DEFINE_string('train_dir', str(sys.argv[4]),
-                           """Directory where to write event logs """
-                           """and checkpoint.""")
-    tf.app.flags.DEFINE_string('export_path', str(sys.argv[5]),
-                       """Directory where to write event logs """
-                       """and checkpoint.""")
+    
     train()
-  else:
-    print("enter propoer arguments")
 
     
 

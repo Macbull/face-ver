@@ -12,6 +12,7 @@ import tensorflow as tf
 from tensorflow_serving.session_bundle import exporter
 import cifar10
 import math
+import sys
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -154,7 +155,7 @@ def train():
 def main(argv=None): 
  # pylint: disable=unused-argument
   if(len(argv)==6):
-    tf.app.flags.DEFINE_string('input_dir', str(argv[1]),
+    tf.app.flags.DEFINE_string('input_dir', str(sys.argv[1]),
                            """Path to the data directory.""")
     tf.app.flags.DEFINE_integer('batch_size', int(sys.argv[2]),
                             """Number of images to process in a batch.""")

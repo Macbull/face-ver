@@ -37,6 +37,7 @@ from __future__ import print_function
 from datetime import datetime
 import math
 import time
+import sys
 
 import numpy as np
 import tensorflow as tf
@@ -45,20 +46,10 @@ import cifar10
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('eval_dir', 'tmp/cifar10_eval',
-                           """Directory where to write event logs.""")
-tf.app.flags.DEFINE_string('eval_data', 'test',
-                           """Either 'test' or 'train_eval'.""")
-tf.app.flags.DEFINE_string('checkpoint_dir', 'tmp/cifar10_train',
-                           """Directory where to read model checkpoints.""")
 tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
                             """How often to run the eval.""")
-# tf.app.flags.DEFINE_integer('num_examples', 10000,
-                            # """Number of examples to run.""")
-tf.app.flags.DEFINE_boolean('run_once', False,
-                         """Whether to run eval only once.""")
-image_size=None
-def eval_once(saver, summary_writer, top_k_op, summary_op, dataset, images, images2, labels):
+
+def eval_once(saver, summary_writer, top_k_op, summary_op, dataset, eval_images, labels):
   """Run Eval once.
 
   Args:
@@ -67,7 +58,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, dataset, images, imag
     top_k_op: Top K op.
     summary_op: Summary op.
   """
-  image, image_p, label = dataset.test_dataset
+  image, label = dataset.test_dataset
   num_examples = dataset.test_samples
   with tf.Session() as sess:
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
@@ -94,11 +85,34 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, dataset, images, imag
       true_count = np.zeros([2,2])  # Counts the number of correct predictions.
       total_sample_count = num_iter * FLAGS.batch_size
       step = 0
+      i=0
+      j=1
       while step < num_iter and not coord.should_stop():
-        predictions, summary_var = sess.run([top_k_op, summary_op], feed_dict={images: image[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size], images2: image_p[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size], labels: 1.0*label[step*FLAGS.batch_size:(step+1)*FLAGS.batch_size]} )
+        image_batch = [[],[]]
+        label_batch = []
+        for k in range(FLAGS.batch_size):
+          image_batch[0].append(image[i])
+          image_batch[1].append(image[j])
+
+          if label[i]==label[j]:
+            label_batch.append(0.0)
+          else:
+            label_batch.append(1.0)
+        
+          j = j + 1
+          if j == dataset.train_samples:
+            i = i + 1
+            j = i + 1
+          if i == dataset.train_samples:
+            i = 0
+            j = 1
+        feed_dict = {eval_images: image_batch, labels: label_batch}
+    
+        predictions, summary_var = sess.run([top_k_op, summary_op], feed_dict=feed_dict)
         true_count += predictions
         print(true_count)
         step += 1
+
       # Compute precision @ 1.
       precision = (true_count[1,0]+true_count[0,1]) / total_sample_count
       print('%s: precision @ 1 = %.3f' % (datetime.now(), precision))
@@ -116,26 +130,22 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, dataset, images, imag
 
 def evaluate():
   """Eval CIFAR-10 for a number of steps."""
-  dataset = input_data.read()
+  dataset = input_data.read(FLAGS.input_dir)
   image_size = dataset.image_size
   with tf.Graph().as_default():
-    # Get images and labels for CIFAR-10.
-    eval_data = FLAGS.eval_data == 'test'
-    # images, labels = cifar10.inputs(eval_data=eval_data)
-
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    images = tf.placeholder(tf.float32, shape=(FLAGS.batch_size, image_size[0], image_size[1], image_size[2]))
-    images2 = tf.placeholder(tf.float32, shape=(FLAGS.batch_size, image_size[0], image_size[1], image_size[2]))
+    eval_images = tf.placeholder(tf.float32, shape=(2, FLAGS.batch_size, image_size[0], image_size[1], image_size[2]))
     labels = tf.placeholder(tf.float32, shape=(FLAGS.batch_size))
-   
+
+    images, images_p = tf.split(0, 2, train_images)
+     
     with tf.variable_scope('inference') as scope:
       logits = cifar10.inference(images)
       scope.reuse_variables()
-      logits2 = cifar10.inference(images2)
+      logits2 = cifar10.inference(images_p)
 
     # Calculate predictions.
-    # top_k_op = tf.nn.in_top_k(logits, labels, 1)
     accuracy = cifar10.accuracy(logits, logits2, labels)
     # Restore the moving average version of the learned variables for eval.
     variable_averages = tf.train.ExponentialMovingAverage(
@@ -151,14 +161,29 @@ def evaluate():
                                             graph_def=graph_def)
 
     while True:
-      eval_once(saver, summary_writer, accuracy, summary_op, dataset, images, images2, labels)
+      eval_once(saver, summary_writer, accuracy, summary_op, dataset, eval_images, labels)
       if FLAGS.run_once:
         break
       time.sleep(FLAGS.eval_interval_secs)
 
 
 def main(argv=None):  # pylint: disable=unused-argument
-  evaluate()
+ if(len(argv)==6):
+    tf.app.flags.DEFINE_string('input_dir', str(sys.argv[1]),
+                           """Path to the data directory.""")
+    tf.app.flags.DEFINE_integer('batch_size', int(sys.argv[2]),
+                            """Number of images to process in a batch.""")
+    tf.app.flags.DEFINE_boolean('run_once', 1==int(sys.argv[3]),
+                         """Whether to run eval only once.""")
+    tf.app.flags.DEFINE_string('checkpoint_dir', str(sys.argv[4]),
+                           """Directory where to read model checkpoints.""")
+    tf.app.flags.DEFINE_string('eval_dir', str(sys.argv[5]),
+                           """Directory where to write event logs.""")
+
+    evaluate()
+
+  else:
+    print("enter propoer arguments")
 
 
 if __name__ == '__main__':

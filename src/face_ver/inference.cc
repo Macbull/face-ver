@@ -111,7 +111,7 @@ class VerifyServiceImpl final : public VerifyService::Service {
     // Transform protobuf input to inference input tensor and create
     // output tensor placeholder.
     // See minist_export.py for details.
-    Tensor input(tensorflow::DT_FLOAT, {1, kImageDataSize});
+    Tensor input(tensorflow::DT_FLOAT, {2, 1, kImageSize1, kImageSize2, kNumChannels});
     std::copy_n(request->image_data().begin(), kImageDataSize,
                 input.flat<float>().data());
     std::vector<Tensor> outputs;
@@ -163,7 +163,7 @@ class VerifyServiceImpl final : public VerifyService::Service {
 void RunServer(int port, std::unique_ptr<SessionBundle> bundle) {
   // "0.0.0.0" is the way to listen on localhost in gRPC.
   const string server_address = "0.0.0.0:" + std::to_string(port);
-  MnistServiceImpl service(std::move(bundle));
+  VerifyServiceImpl service(std::move(bundle));
   ServerBuilder builder;
   std::shared_ptr<grpc::ServerCredentials> creds = InsecureServerCredentials();
   builder.AddListeningPort(server_address, creds);

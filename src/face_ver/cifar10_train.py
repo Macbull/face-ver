@@ -25,7 +25,7 @@ tf.app.flags.DEFINE_integer('batch_size', 128,
                         """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('max_steps', 1000000,
                         """Number of batches to run.""")
-tf.app.flags.DEFINE_string('train_dir', 'tmp/train,
+tf.app.flags.DEFINE_string('train_dir', 'tmp/train',
                        """Directory where to write event logs """
                        """and checkpoint.""")
 tf.app.flags.DEFINE_string('export_path', 'tmp/serving',

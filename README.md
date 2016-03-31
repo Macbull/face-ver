@@ -4,6 +4,7 @@ This  code implements siamese network to verify face using Tensorflow. The model
 
 To run the code : 
 
+```shell
 1. Install Docker
 2. cd to the root directory of this repository
 3. $docker build -t face-ver .
@@ -23,3 +24,4 @@ To run the code :
 16. put any two images, img1.pgm and img2.pgm in folder 'test'
 17. (docker)$bazel-bin/tensorflow_serving/example/client --server=localhost:9000
 18. The output printed will be the distance between two feature vector. Lesses the distance, more is the probability of images being of same face.
+```
